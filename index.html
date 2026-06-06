@@ -876,7 +876,12 @@ function getFixedForWeek(friday) {
   return entries;
 }
 
-// ── FROZEN UNFREEZE FOR WEEK ──
+// ── FROZEN HELPERS ──
+function getTotalFrozen(){
+  return state.frozen.reduce((s,f)=>s+Number(f.amount||0),0);
+}
+
+// Frozen items that unfreeze during this pay week (fri to fri+6)
 function getUnfreezeForWeek(friday) {
   const nf=new Date(friday); nf.setDate(nf.getDate()+6);
   return state.frozen.filter(f=>{
@@ -886,93 +891,90 @@ function getUnfreezeForWeek(friday) {
   });
 }
 
-// ── SOBRANTE ──
+// Frozen items that were frozen BEFORE or DURING this week and haven't unfrozen yet
+// These reduce available money
+function getFrozenDeductionForWeek(friday){
+  const nf=new Date(friday); nf.setDate(nf.getDate()+6);
+  return state.frozen.reduce((sum,f)=>{
+    // Deduct if no unfreeze date, or unfreeze date is after this week
+    if(!f.unfreezeDate) return sum+Number(f.amount||0);
+    const ud=parseDate(f.unfreezeDate);
+    if(ud>nf) return sum+Number(f.amount||0); // still frozen after this week
+    return sum; // unfreezes this week or already unfrozen — don't deduct
+  },0);
+}
+
+// ── CORE CALCULATION ──
+// Returns net sobrante for a given friday week.
+// Uses a memoization cache per render cycle to avoid redundant recursion.
+let _sobraCache = {};
+
 function getSobrante(friday) {
   const wk=weekKey(friday);
+  if(_sobraCache[wk]!==undefined) return _sobraCache[wk];
+
   const incomes=getIncomeForWeek(friday);
   const fixed=getFixedForWeek(friday);
   const extra=state.weeks[wk]?.extraEntries||[];
-  const carry=getCarryFromPrev(friday);
-  const unfreeze=showFrozen?getUnfreezeForWeek(friday):[];
-
-  let totalIncome=carry;
-  incomes.forEach(i=>totalIncome+=Number(i.amount)||0);
-  extra.filter(e=>e.isIncome).forEach(e=>totalIncome+=Number(e.amount)||0);
-  unfreeze.forEach(f=>totalIncome+=Number(f.amount)||0);
-
-  let totalExpense=0;
+  const overrides=state.weeks[wk]?.overrides||{};
   const checked=state.weeks[wk]?.checked||{};
   const checkedAmounts=state.weeks[wk]?.checkedAmounts||{};
+  const pendingAmounts=state.weeks[wk]?.pendingAmounts||{};
 
+  // Carry = sobrante of previous week
+  const prevFriday=new Date(friday); prevFriday.setDate(prevFriday.getDate()-7);
+  const today=new Date(); today.setHours(0,0,0,0);
+  const weeksAgo=Math.round((today-prevFriday)/(7*864e5));
+  const carry = weeksAgo > MAX_WEEKS+1
+    ? (state.baseCarry||0)
+    : getSobrante(prevFriday).net;
+
+  // Incomes for this week
+  let totalIncome = carry;
+  incomes.forEach(i=>{
+    const amt=overrides[i.id]!==undefined?overrides[i.id]:i.amount;
+    totalIncome+=Number(amt)||0;
+  });
+  extra.filter(e=>e.isIncome).forEach(e=>totalIncome+=Number(e.amount)||0);
+
+  // Unfreeze income (only when showFrozen toggle is ON, or always add it since it's real money returning)
+  // Always add unfreeze as real income — it's money returning regardless of toggle
+  getUnfreezeForWeek(friday).forEach(f=>totalIncome+=Number(f.amount||0));
+
+  // Expenses for this week
+  let totalExpense=0;
   fixed.forEach(f=>{
-    const amt=checked[f.id]?(checkedAmounts[f.id]||f.amount):f.amount;
+    // Use checked amount if checked, pending amount if edited, else override or default
+    let amt;
+    if(checked[f.id]) amt=checkedAmounts[f.id]!==undefined?checkedAmounts[f.id]:f.amount;
+    else amt=pendingAmounts[f.id]!==undefined?pendingAmounts[f.id]:(overrides[f.id]!==undefined?overrides[f.id]:f.amount);
     totalExpense+=Number(amt)||0;
   });
   extra.filter(e=>!e.isIncome).forEach(e=>{
-    const amt=checked[e.id]?(checkedAmounts[e.id]||e.amount):e.amount;
+    let amt;
+    if(checked[e.id]) amt=checkedAmounts[e.id]!==undefined?checkedAmounts[e.id]:e.amount;
+    else amt=pendingAmounts[e.id]!==undefined?pendingAmounts[e.id]:e.amount;
     totalExpense+=Number(amt)||0;
   });
 
-  // Frozen deduction if showing frozen
-  let frozenDeduction=0;
-  if(showFrozen){
-    state.frozen.forEach(f=>{
-      // deduct from the week the freeze was created — we'll use the current week as origin
-      // Actually: deduct from this week only if it's the current week and no unfreezeDate yet shown
-      // Simpler: frozen items reduce sobrante from ALL weeks (they're already moved out)
-    });
-  } else {
-    // Normal mode: frozen money is already not visible, deduct from carry chain
-    state.frozen.forEach(f=>{
-      // frozen amounts are deducted globally — reflected by removing from sobrante base
-    });
-  }
-
-  return {totalIncome, totalExpense, net: totalIncome - totalExpense};
-}
-
-function getCarryFromPrev(friday) {
-  const prevFriday=new Date(friday); prevFriday.setDate(prevFriday.getDate()-7);
-  const today=new Date(); today.setHours(0,0,0,0);
-  const weeksAgo=(today-prevFriday)/(7*864e5);
-  if(weeksAgo>MAX_WEEKS+2) return getFrozenBaseCarry();
-  const {net}=getSobrante(prevFriday);
-
-  // Subtract frozen amounts that haven't unfrozen yet (hide from normal view)
-  if(!showFrozen){
-    // frozen money is subtracted once when this week's carry is computed
-    // We'll handle it via a one-time deduction at the current week boundary
-    return net - getFrozenActiveTotal(prevFriday);
-  }
-  return net;
-}
-
-function getFrozenActiveTotal(asOfFriday){
-  // total frozen that has NOT yet been unfrozen as of asOfFriday
-  // We only deduct once — at the "current week" level to avoid compounding
-  // Strategy: subtract frozen total from carry into the CURRENT week only
+  // Frozen deduction — frozen money is not available
+  // Only deduct from the CURRENT week to avoid compounding across weeks
   const curFriday=getCurrentWeekFriday();
-  if(toDateStr(asOfFriday)===toDateStr(curFriday)){
-    return state.frozen.reduce((sum,f)=>{
-      if(!f.unfreezeDate) return sum+Number(f.amount);
-      const ud=parseDate(f.unfreezeDate);
-      // still frozen
-      return sum+Number(f.amount);
-    },0);
+  if(toDateStr(friday)===toDateStr(curFriday)){
+    totalExpense+=getFrozenDeductionForWeek(friday);
   }
-  return 0;
+
+  const net=totalIncome-totalExpense;
+  const result={totalIncome, totalExpense, net, carry};
+  _sobraCache[wk]=result;
+  return result;
 }
 
-function getFrozenBaseCarry(){
-  return state.baseCarry||0;
-}
-
-function getTotalFrozen(){
-  return state.frozen.reduce((s,f)=>s+Number(f.amount||0),0);
-}
+function clearSobraCache(){ _sobraCache={}; }
 
 // ── RENDER WEEKS ──
 function renderWeeks(){
+  clearSobraCache(); // fresh calculations every render
   const fridays=getVisibleFridays();
   const grid=document.getElementById('weeksGrid');
   const curFriday=getCurrentWeekFriday();
@@ -1001,10 +1003,9 @@ function renderWeeks(){
     const extra=state.weeks[wk]?.extraEntries||[];
     const checked=state.weeks[wk]?.checked||{};
     const checkedAmounts=state.weeks[wk]?.checkedAmounts||{};
-    const carry=getCarryFromPrev(friday);
-    const {totalIncome,totalExpense,net}=getSobrante(friday);
+    const {totalIncome,totalExpense,net,carry}=getSobrante(friday);
     const isNeg=net<0;
-    const unfreeze=showFrozen?getUnfreezeForWeek(friday):[];
+    const unfreeze=getUnfreezeForWeek(friday);
 
     // Build income rows
     let incPending='', incDone='';
@@ -1173,17 +1174,16 @@ function toggleCheck(wk,id,defaultAmt,type){
       state.weeks[wk].overrides[id]=Number(finalAmt);
     }
   }
-  save(); renderWeeks();
+  save(); clearSobraCache(); renderWeeks();
 }
 
 function updatePendingAmount(wk,id,val){
   if(!state.weeks[wk]) state.weeks[wk]={overrides:{},extraEntries:[],checked:{},checkedAmounts:{},pendingAmounts:{}};
   if(!state.weeks[wk].pendingAmounts) state.weeks[wk].pendingAmounts={};
   state.weeks[wk].pendingAmounts[id]=Number(val)||0;
-  // Also update override for sobrante calculation
   if(!state.weeks[wk].overrides) state.weeks[wk].overrides={};
   state.weeks[wk].overrides[id]=Number(val)||0;
-  save(); renderWeeks();
+  save(); clearSobraCache(); renderWeeks();
 }
 
 // ── ADD EXPENSE ──
@@ -1222,12 +1222,12 @@ function saveExpenseEntry(){
   } else {
     state.weeks[wk].extraEntries.push({id:uid(),desc,amount,isIncome});
   }
-  save(); renderWeeks(); closeModal('modalExpense'); showToast('✅ Guardado');
+  save(); clearSobraCache(); renderWeeks(); closeModal('modalExpense'); showToast('✅ Guardado');
 }
 function deleteExtra(wk,id){
   if(!state.weeks[wk]) return;
   state.weeks[wk].extraEntries=(state.weeks[wk].extraEntries||[]).filter(e=>e.id!==id);
-  save(); renderWeeks(); showToast('🗑 Eliminado');
+  save(); clearSobraCache(); renderWeeks(); showToast('🗑 Eliminado');
 }
 
 // ── EDIT AUTO OVERRIDE ──
@@ -1246,7 +1246,7 @@ function saveAutoOverride(){
   if(!state.weeks[wk]) state.weeks[wk]={overrides:{},extraEntries:[],checked:{},checkedAmounts:{}};
   if(!state.weeks[wk].overrides) state.weeks[wk].overrides={};
   state.weeks[wk].overrides[id]=amount;
-  save(); renderWeeks(); closeModal('modalEditAuto'); showToast('✅ Monto actualizado');
+  save(); clearSobraCache(); renderWeeks(); closeModal('modalEditAuto'); showToast('✅ Monto actualizado');
 }
 
 // ── INCOME SETTINGS ──
@@ -1308,11 +1308,11 @@ function saveIncome(){
   const obj={id:editId||uid(),name,amount,freq,nextDate:nextDate||null,monthDay:monthDay||null};
   if(editId){ const idx=state.incomes.findIndex(i=>i.id===editId); if(idx>=0) state.incomes[idx]=obj; }
   else state.incomes.push(obj);
-  save(); renderIncomes(); renderWeeks(); closeModal('modalIncome'); showToast('✅ Ingreso guardado');
+  save(); clearSobraCache(); renderIncomes(); renderWeeks(); closeModal('modalIncome'); showToast('✅ Ingreso guardado');
 }
 function deleteIncome(id){
   state.incomes=state.incomes.filter(i=>i.id!==id);
-  save(); renderIncomes(); renderWeeks(); showToast('🗑 Eliminado');
+  save(); clearSobraCache(); renderIncomes(); renderWeeks(); showToast('🗑 Eliminado');
 }
 
 // ── FIXED EXPENSE SETTINGS ──
@@ -1383,11 +1383,11 @@ function saveFixed(){
   const obj={id:editId||uid(),name,amount,freq,monthDay:monthDay||null,nextDate:nextDate||null,customDate:customDate||null,icon};
   if(editId){ const idx=state.fixedExpenses.findIndex(x=>x.id===editId); if(idx>=0) state.fixedExpenses[idx]=obj; }
   else state.fixedExpenses.push(obj);
-  save(); renderFixed(); renderWeeks(); closeModal('modalFixed'); showToast('✅ Gasto fijo guardado');
+  save(); clearSobraCache(); renderFixed(); renderWeeks(); closeModal('modalFixed'); showToast('✅ Gasto fijo guardado');
 }
 function deleteFixed(id){
   state.fixedExpenses=state.fixedExpenses.filter(x=>x.id!==id);
-  save(); renderFixed(); renderWeeks(); showToast('🗑 Eliminado');
+  save(); clearSobraCache(); renderFixed(); renderWeeks(); showToast('🗑 Eliminado');
 }
 
 // ── FROZEN MONEY ──
@@ -1441,11 +1441,11 @@ function saveFrozen(){
   const obj={id:editId||uid(),name,amount,unfreezeDate:unfreezeDate||null};
   if(editId){ const idx=state.frozen.findIndex(x=>x.id===editId); if(idx>=0) state.frozen[idx]=obj; }
   else state.frozen.push(obj);
-  save(); renderFrozen(); renderWeeks(); closeModal('modalFreeze'); showToast('🧊 Dinero congelado');
+  save(); clearSobraCache(); renderFrozen(); renderWeeks(); closeModal('modalFreeze'); showToast('🧊 Dinero congelado');
 }
 function deleteFrozen(id){
   state.frozen=state.frozen.filter(x=>x.id!==id);
-  save(); renderFrozen(); renderWeeks(); showToast('🔥 Descongelado y eliminado');
+  save(); clearSobraCache(); renderFrozen(); renderWeeks(); showToast('🔥 Descongelado y eliminado');
 }
 
 // ── SAVE / LOAD ──
@@ -1480,7 +1480,7 @@ function importData(event){
   reader.onload=e=>{
     try{
       const imported=JSON.parse(e.target.result);
-      Object.assign(state,imported); save(); renderAll(); showToast('📥 Datos importados');
+      Object.assign(state,imported); save(); clearSobraCache(); renderAll(); showToast('📥 Datos importados');
     }catch(err){ showToast('❌ Archivo inválido'); }
     event.target.value='';
   };
@@ -1489,12 +1489,12 @@ function importData(event){
 function clearAll(){
   if(!confirm('¿Borrar todos los datos? No se puede deshacer.')) return;
   state={incomes:[],fixedExpenses:[],frozen:[],weeks:{},weekOffset:0};
-  save(); renderAll(); showToast('🗑 Datos borrados');
+  save(); clearSobraCache(); renderAll(); showToast('🗑 Datos borrados');
 }
 
 // ── NAVIGATION ──
-function navigateWeeks(dir){ state.weekOffset+=dir; renderWeeks(); }
-function goToToday(){ state.weekOffset=0; renderWeeks(); }
+function navigateWeeks(dir){ state.weekOffset+=dir; clearSobraCache(); renderWeeks(); }
+function goToToday(){ state.weekOffset=0; clearSobraCache(); renderWeeks(); }
 
 // ── MODALS ──
 function openModal(id){ document.getElementById(id).classList.add('open'); }
