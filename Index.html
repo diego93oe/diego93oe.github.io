@@ -1,0 +1,1757 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Mi Planificador</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c0e18;
+  --surface: #161925;
+  --surface2: #1e2235;
+  --surface3: #252a40;
+  --accent: #4ade80;
+  --accent2: #38bdf8;
+  --accent3: #f472b6;
+  --frozen: #a78bfa;
+  --warn: #fb923c;
+  --danger: #f87171;
+  --gold: #fbbf24;
+  --text: #e8eaf0;
+  --text2: #9aa0b8;
+  --text3: #5c6280;
+  --border: #2a2f4a;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.5);
+  --current-bg: #0d1f18;
+  --current-border: #4ade80;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Nunito', sans-serif;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ── FINANCE WALLPAPER ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='260' viewBox='0 0 420 260'%3E%3Cpolyline points='0,200 40,170 80,185 120,140 160,155 200,100 240,120 280,70 320,90 360,45 420,60' fill='none' stroke='%234ade80' stroke-width='1.5' stroke-opacity='0.07'/%3E%3Cpolyline points='0,220 40,200 80,210 120,175 160,190 200,145 240,160 280,120 320,135 360,95 420,110' fill='none' stroke='%2338bdf8' stroke-width='1' stroke-opacity='0.05'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Ctext x='10' y='38' font-size='22' fill='%234ade80' fill-opacity='0.03' font-family='sans-serif'%3E%24%3C/text%3E%3Ctext x='65' y='80' font-size='18' fill='%2338bdf8' fill-opacity='0.03' font-family='sans-serif'%3E€%3C/text%3E%3Ctext x='20' y='105' font-size='16' fill='%23a78bfa' fill-opacity='0.025' font-family='sans-serif'%3E₿%3C/text%3E%3Ctext x='80' y='30' font-size='14' fill='%23fbbf24' fill-opacity='0.025' font-family='sans-serif'%3E¥%3C/text%3E%3C/svg%3E");
+  background-repeat: repeat, repeat;
+  background-size: 420px 260px, 120px 120px;
+}
+
+/* ── GRID LINES ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(74,222,128,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74,222,128,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ── HEADER ── */
+.app-header {
+  background: linear-gradient(135deg, rgba(22,25,37,0.97) 0%, rgba(30,34,53,0.97) 100%);
+  backdrop-filter: blur(12px);
+  padding: 14px 16px 0;
+  position: sticky; top: 0; z-index: 100;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 20px rgba(0,0,0,0.6);
+}
+.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.app-title { font-size: 19px; font-weight: 900; color: var(--accent); letter-spacing: -0.5px; display:flex; align-items:center; gap:6px; }
+.app-title span { color: var(--text2); font-weight: 600; }
+.header-actions { display: flex; gap: 8px; }
+.btn-icon { background: var(--surface3); border: 1px solid var(--border); color: var(--text2);
+  width: 40px; height: 40px; border-radius: var(--radius-sm); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 17px;
+  transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
+.btn-icon:active { background: var(--surface2); transform: scale(0.92); }
+
+/* ── NAV TABS ── */
+.nav-tabs { display: flex; }
+.nav-tab { flex: 1; text-align: center; padding: 11px 2px; font-size: 10px; font-weight: 800;
+  color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.2s; letter-spacing: 0.3px; text-transform: uppercase; }
+.nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── MAIN ── */
+main { padding: 12px 12px 0; max-width: 480px; margin: 0 auto; position: relative; z-index: 1; }
+
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── WEEK NAV ── */
+.week-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.week-nav-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
+  width: 46px; height: 46px; border-radius: 50%; cursor: pointer; font-size: 22px;
+  display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink:0; }
+.week-nav-btn:hover { background: var(--surface3); color: var(--text); }
+.week-range-label { font-size: 13px; font-weight: 700; color: var(--text2); text-align: center; }
+.today-btn { background: var(--surface3); border: 1px solid var(--accent); color: var(--accent);
+  padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; cursor: pointer;
+  margin-top:4px; display:inline-block; }
+
+/* ── FROZEN BANNER ── */
+.frozen-banner {
+  background: linear-gradient(135deg, rgba(167,139,250,0.1), rgba(167,139,250,0.05));
+  border: 1px solid rgba(167,139,250,0.3);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.frozen-banner-left { display:flex; align-items:center; gap:8px; }
+.frozen-banner-icon { font-size: 20px; }
+.frozen-banner-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; color: var(--frozen); }
+.frozen-banner-total { font-family: 'DM Mono', monospace; font-size: 17px; color: var(--frozen); font-weight:500; }
+.frozen-toggle-btn { background: rgba(167,139,250,0.15); border: 1px solid rgba(167,139,250,0.3);
+  color: var(--frozen); padding: 8px 14px; border-radius: 20px; font-size: 11px; font-weight: 800;
+  cursor: pointer; font-family: 'Nunito',sans-serif; white-space:nowrap; }
+
+/* ── WEEKS GRID ── */
+.weeks-grid { display: flex; flex-direction: column; gap: 14px; }
+
+/* ── WEEK CARD ── */
+.week-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: all 0.3s;
+  position: relative;
+}
+.week-card.current {
+  background: var(--current-bg);
+  border-color: var(--current-border);
+  box-shadow: 0 0 0 1px rgba(74,222,128,0.3), 0 8px 32px rgba(74,222,128,0.08), var(--shadow);
+}
+.week-card.current::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(74,222,128,0.06) 0%, transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='120'%3E%3Cpolyline points='0,90 30,75 60,82 90,58 120,68 150,40 180,52 210,28 240,38 270,15 300,25' fill='none' stroke='%234ade80' stroke-width='1.2' stroke-opacity='0.09'/%3E%3C/svg%3E") right bottom / 300px 120px no-repeat;
+}
+.week-card.negative { border-color: var(--danger); box-shadow: 0 0 0 1px rgba(248,113,113,0.3); }
+
+/* ── WEEK HEADER ── */
+.week-header {
+  background: rgba(0,0,0,0.15);
+  padding: 12px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; position: relative; z-index:1;
+  border-bottom: 1px solid var(--border);
+}
+.week-card.current .week-header { background: rgba(74,222,128,0.06); }
+.week-header-left { display: flex; align-items: center; gap: 8px; }
+.week-badge { background: var(--surface3); border-radius: 6px; padding: 3px 9px;
+  font-size: 10px; font-weight: 800; color: var(--accent2); text-transform: uppercase; letter-spacing: 0.5px; }
+.week-badge.current-badge {
+  background: rgba(74,222,128,0.15); color: var(--accent);
+  box-shadow: 0 0 8px rgba(74,222,128,0.2);
+}
+.week-date { font-size: 14px; font-weight: 700; color: var(--text); }
+.collapse-btn { background: var(--surface3); border: 1px solid var(--border); color: var(--text3);
+  cursor: pointer; font-size: 13px; padding: 0; transition: transform 0.25s; line-height:1;
+  width: 32px; height: 32px; border-radius: 8px; display:flex; align-items:center; justify-content:center; }
+.collapse-btn.collapsed { transform: rotate(-90deg); }
+
+/* ── SOBRANTE ── */
+.sobrante-display {
+  padding: 14px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  position: relative; z-index:1;
+}
+.sobrante-left { display:flex; flex-direction:column; gap:2px; }
+.sobrante-label { font-size: 10px; font-weight: 800; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; }
+.sobrante-amount {
+  font-family: 'DM Mono', monospace;
+  font-size: 28px; font-weight: 500;
+  color: var(--accent);
+  text-shadow: 0 0 20px rgba(74,222,128,0.35);
+  letter-spacing: -1px;
+}
+.sobrante-amount.negative { color: var(--danger); text-shadow: 0 0 20px rgba(248,113,113,0.35); }
+
+/* ── WEEK BODY ── */
+.week-body { padding: 12px 12px 14px; position:relative; z-index:1; }
+
+/* ── SINGLE COLUMN LAYOUT ── */
+.week-section { margin-bottom: 10px; }
+.col-header {
+  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text3); margin-bottom: 6px; padding: 6px 8px;
+  border-radius: 6px; background: rgba(255,255,255,0.03);
+}
+.col-header.income-header { color: var(--accent); background: rgba(74,222,128,0.06); }
+.col-header.expense-header { color: var(--warn); background: rgba(251,146,60,0.06); }
+
+/* ── ENTRY ROWS ── */
+.entry-row {
+  display: flex; align-items: center;
+  padding: 9px 6px; min-height: 46px;
+  border-bottom: 1px solid rgba(42,47,74,0.4); gap: 8px;
+}
+.entry-row:last-child { border-bottom: none; }
+.entry-amount { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500;
+  color: var(--text); min-width: 62px; text-align: right; flex-shrink:0; }
+.entry-amount.income-val { color: var(--accent); }
+.entry-label { font-size: 13px; color: var(--text2); flex: 1; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.entry-icon { font-size: 16px; flex-shrink:0; }
+
+/* fixed expense row */
+.entry-row.fixed-expense .entry-amount { color: var(--warn); }
+.entry-row.fixed-expense .entry-label { color: #fde68a; }
+
+/* carry */
+.entry-row.carry-row .entry-amount { color: var(--accent2); font-size:12px; }
+.entry-row.carry-row .entry-label { color: var(--accent2); font-style: italic; font-size:11px; }
+
+/* frozen unfreeze row */
+.entry-row.unfreeze-row .entry-amount { color: var(--frozen); }
+.entry-row.unfreeze-row .entry-label { color: var(--frozen); font-style:italic; font-size:11px; }
+
+/* ── CHECK BUTTON ── */
+.check-btn {
+  width: 28px; height: 28px; flex-shrink:0;
+  border-radius: 50%; border: 2px solid var(--border);
+  background: none; cursor: pointer; transition: all 0.18s;
+  display: flex; align-items: center; justify-content: center; font-size: 13px;
+  -webkit-tap-highlight-color: transparent;
+}
+.check-btn:active { transform: scale(0.88); }
+.check-btn.checked { background: rgba(74,222,128,0.2); border-color: var(--accent); color: var(--accent); }
+.entry-row.done .entry-label { text-decoration: line-through; color: var(--text3); }
+.entry-row.done .entry-amount { text-decoration: line-through; color: var(--text3) !important; opacity:0.6; }
+.entry-row.done .entry-icon { opacity:0.4; }
+
+/* ── INLINE EDITABLE AMOUNT ── */
+.amount-editable {
+  font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500;
+  background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.3);
+  color: var(--accent2); border-radius: 6px; padding: 5px 8px;
+  width: 80px; text-align:right; outline:none;
+  -moz-appearance: textfield; min-height: 34px;
+}
+.amount-editable:focus { border-color: var(--accent2); background: rgba(56,189,248,0.14); }
+.amount-editable::-webkit-inner-spin-button,
+.amount-editable::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+/* ── ENTRY ACTION BUTTONS ── */
+.entry-actions { display: flex; gap: 4px; flex-shrink:0; }
+.entry-edit-btn {
+  background: var(--surface3); border: 1px solid var(--border); color: var(--text3);
+  cursor: pointer; font-size: 13px; line-height:1;
+  width: 30px; height: 30px; border-radius: 8px;
+  display:flex; align-items:center; justify-content:center;
+  transition: all 0.18s; -webkit-tap-highlight-color: transparent;
+}
+.entry-edit-btn:active { transform: scale(0.88); background: var(--surface2); }
+
+/* ── TOTALS ── */
+.week-totals { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; }
+.total-item { text-align: center; flex:1; }
+.total-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;
+  color: var(--text3); margin-bottom: 3px; }
+.total-val { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500; }
+.total-val.t-income { color: var(--accent); }
+.total-val.t-expense { color: var(--warn); }
+.total-val.t-net { color: var(--accent); }
+.total-val.t-net.negative { color: var(--danger); }
+
+/* ── BOTTOM BUTTONS ── */
+.add-expense-btn {
+  width: 100%; margin-top: 10px;
+  background: rgba(74,222,128,0.06); border: 1px dashed rgba(74,222,128,0.25);
+  color: var(--accent); padding: 12px; border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 700; cursor: pointer; text-align: center;
+  transition: all 0.2s; font-family: 'Nunito', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+.add-expense-btn:active { background: rgba(74,222,128,0.14); transform: scale(0.98); }
+.freeze-week-btn {
+  width: 100%; margin-top: 8px;
+  background: rgba(167,139,250,0.06); border: 1px dashed rgba(167,139,250,0.25);
+  color: var(--frozen); padding: 12px; border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 700; cursor: pointer; text-align: center;
+  transition: all 0.2s; font-family: 'Nunito', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+.freeze-week-btn:active { background: rgba(167,139,250,0.14); transform: scale(0.98); }
+
+/* ── SETTINGS ── */
+.settings-section { margin-bottom: 22px; }
+.section-title { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--accent); margin-bottom: 10px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border); }
+.settings-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px 12px; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 10px;
+}
+.settings-item-info { flex: 1; min-width:0; }
+.settings-item-name { font-size: 14px; font-weight: 700; color: var(--text); }
+.settings-item-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+.settings-item-amount { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--accent2); flex-shrink:0; }
+.settings-item-actions { display: flex; gap: 7px; flex-shrink:0; }
+.btn-sm {
+  background: var(--surface3); border: 1px solid var(--border); color: var(--text2);
+  padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: 'Nunito', sans-serif; transition: all 0.2s;
+  min-width: 36px; min-height: 36px; display:flex; align-items:center; justify-content:center;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-sm:active { background: var(--surface2); transform: scale(0.92); }
+.btn-sm.danger { border-color: var(--danger); color: var(--danger); }
+.btn-sm.danger:active { background: rgba(248,113,113,0.1); }
+.add-setting-btn {
+  width: 100%; background: var(--surface2); border: 1px dashed var(--border);
+  color: var(--text3); padding: 13px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'Nunito', sans-serif;
+  transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+  -webkit-tap-highlight-color: transparent;
+}
+.add-setting-btn:active { color: var(--text); border-color: var(--text3); }
+
+/* frozen item special */
+.settings-item.frozen-item { border-color: rgba(167,139,250,0.3); background: rgba(167,139,250,0.05); }
+.frozen-item .settings-item-amount { color: var(--frozen); }
+
+/* ── DATA PAGE ── */
+.data-card { background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+.data-title { font-size: 13px; font-weight: 800; color: var(--text2); margin-bottom: 5px; }
+.data-desc { font-size: 11px; color: var(--text3); margin-bottom: 10px; line-height: 1.5; }
+.btn-primary { background: var(--accent); color: #0a120d; border: none; padding: 14px 18px;
+  border-radius: var(--radius-sm); font-size: 15px; font-weight: 800; cursor: pointer;
+  font-family: 'Nunito', sans-serif; width: 100%; min-height: 50px; }
+.btn-primary:active { background: #86efac; }
+.btn-secondary { background: var(--surface3); color: var(--text2); border: 1px solid var(--border);
+  padding: 14px 18px; border-radius: var(--radius-sm); font-size: 15px; font-weight: 700;
+  cursor: pointer; font-family: 'Nunito', sans-serif; width: 100%; margin-top: 8px; min-height: 50px; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75); z-index: 1000;
+  align-items: flex-end; justify-content: center;
+  backdrop-filter: blur(6px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding: 18px 18px 28px;
+  width: 100%; max-width: 480px;
+  max-height: 88vh; overflow-y: auto;
+  animation: slideUp 0.22s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-handle { width: 34px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 14px; }
+.modal-title { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 14px; }
+
+/* ── FORM ── */
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;
+  color: var(--text3); margin-bottom: 6px; display: block; }
+.form-input {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 13px 14px; border-radius: var(--radius-sm);
+  font-size: 16px; font-family: 'Nunito', sans-serif; outline: none; transition: border-color 0.2s;
+  min-height: 48px;
+}
+.form-input:focus { border-color: var(--accent2); }
+.form-input::placeholder { color: var(--text3); }
+select.form-input option { background: var(--surface2); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-check { display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 8px 0; }
+.form-check input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--accent); cursor: pointer; flex-shrink:0; }
+.form-check span { font-size: 14px; color: var(--text2); }
+
+/* icon picker */
+.icon-grid { display: flex; flex-wrap: wrap; gap: 9px; }
+.icon-opt { width: 44px; height: 44px; background: var(--surface3); border: 2px solid var(--border);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-size: 22px; cursor: pointer; transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent; }
+.icon-opt:active { transform: scale(0.88); }
+.icon-opt.selected { border-color: var(--accent); background: rgba(74,222,128,0.1); }
+
+/* modal actions */
+.modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+.modal-actions button { flex: 1; padding: 14px; border-radius: var(--radius-sm);
+  font-size: 15px; font-weight: 800; cursor: pointer; font-family: 'Nunito', sans-serif;
+  border: none; transition: all 0.2s; min-height: 50px;
+  -webkit-tap-highlight-color: transparent; }
+.btn-cancel { background: var(--surface3); color: var(--text2); }
+.btn-cancel:active { background: var(--surface2); }
+.btn-confirm { background: var(--accent); color: #0a120d; }
+.btn-confirm:active { background: #86efac; transform: scale(0.97); }
+.btn-confirm.frozen-confirm { background: var(--frozen); color: #0a0820; }
+.btn-confirm.frozen-confirm:active { background: #c4b5fd; }
+
+/* ── TOAST ── */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(16px);
+  background: var(--surface3); border: 1px solid var(--border); color: var(--text);
+  padding: 9px 18px; border-radius: 20px; font-size: 12px; font-weight: 700;
+  opacity: 0; transition: all 0.28s; z-index: 2000; pointer-events: none; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── PIN SCREEN ── */
+#pinScreen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg);
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 0;
+  padding: 32px 28px;
+}
+#pinScreen::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(74,222,128,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74,222,128,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.pin-top {
+  display: flex; flex-direction: column; align-items: center;
+  width: 100%; max-width: 340px;
+  position: relative; z-index:1;
+}
+.pin-logo { font-size: 52px; margin-bottom: 12px; filter: drop-shadow(0 0 20px rgba(74,222,128,0.45)); }
+.pin-title { font-size: 26px; font-weight: 900; color: var(--accent); margin-bottom: 4px; letter-spacing:-0.5px; }
+.pin-subtitle { font-size: 14px; color: var(--text3); margin-bottom: 36px; }
+
+.pin-input-wrap {
+  width: 100%; position: relative; margin-bottom: 16px;
+}
+.pin-input-field {
+  width: 100%;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  color: transparent;
+  caret-color: var(--accent);
+  font-size: 32px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 16px;
+  text-align: center;
+  padding: 20px 16px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-text-security: disc;
+  text-security: disc;
+}
+.pin-input-field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(74,222,128,0.15);
+}
+.pin-input-field.error {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(248,113,113,0.15);
+}
+/* Dots overlay */
+.pin-dots-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  gap: 20px; pointer-events: none;
+}
+.pin-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid var(--border); background: transparent;
+  transition: all 0.18s;
+}
+.pin-dot.filled { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 10px rgba(74,222,128,0.5); }
+.pin-dot.error-dot { background: var(--danger); border-color: var(--danger); box-shadow: 0 0 10px rgba(248,113,113,0.5); }
+
+.pin-hint { font-size: 13px; color: var(--text3); margin-bottom: 6px; text-align:center; }
+.pin-error-msg { color: var(--danger); font-size: 13px; font-weight: 700;
+  height: 20px; text-align:center; transition: opacity 0.3s; }
+@keyframes pinShake {
+  0%,100%{transform:translateX(0)} 20%{transform:translateX(-10px)} 40%{transform:translateX(10px)}
+  60%{transform:translateX(-7px)} 80%{transform:translateX(7px)}
+}
+.pin-input-wrap.shake { animation: pinShake 0.4s ease; }
+.pin-bottom { display:none; } /* no longer used */
+
+/* ── DUAL SOBRANTE (current week only) ── */
+.sobrante-dual {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  position: relative; z-index:1;
+}
+.sobrante-dual-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.sobrante-dual-row:last-child { margin-bottom: 0; }
+.sobrante-dual-label {
+  font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--text3);
+  display: flex; align-items: center; gap: 5px;
+}
+.sobrante-dual-label .lbl-badge {
+  font-size: 9px; padding: 1px 6px; border-radius: 10px; font-weight: 800;
+  letter-spacing: 0.5px;
+}
+.lbl-badge.parcial { background: rgba(56,189,248,0.15); color: var(--accent2); }
+.lbl-badge.proyectado { background: rgba(74,222,128,0.12); color: var(--accent); }
+.sobrante-dual-amount {
+  font-family: 'DM Mono', monospace; font-weight: 500; letter-spacing: -0.5px;
+}
+.sobrante-dual-amount.parcial { font-size: 20px; color: var(--accent2);
+  text-shadow: 0 0 16px rgba(56,189,248,0.35); }
+.sobrante-dual-amount.proyectado { font-size: 26px; color: var(--accent);
+  text-shadow: 0 0 20px rgba(74,222,128,0.35); }
+.sobrante-dual-amount.negative { color: var(--danger) !important;
+  text-shadow: 0 0 16px rgba(248,113,113,0.35) !important; }
+.sobrante-divider { height: 1px; background: var(--border); margin: 6px 0; opacity:0.5; }
+.sobrante-frozen-line { font-size:10px; color:var(--frozen); margin-top:4px; }
+.bottom-pad { height: 24px; }
+.empty-state { text-align: center; padding: 32px 20px; color: var(--text3); }
+.empty-icon { font-size: 36px; margin-bottom: 10px; }
+.empty-text { font-size: 12px; }
+
+/* divider */
+.checked-divider {
+  font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing:1px;
+  color: var(--text3); margin: 6px 0 4px; padding-top:4px;
+  border-top: 1px dashed var(--border);
+}
+</style>
+</head>
+<body>
+
+<!-- PIN SCREEN -->
+<div id="pinScreen">
+  <div class="pin-top">
+    <div class="pin-logo">💰</div>
+    <div class="pin-title">Mi Planificador</div>
+    <div class="pin-subtitle">Ingresa tu PIN para continuar</div>
+    <div class="pin-input-wrap" id="pinWrap">
+      <input
+        class="pin-input-field" id="pinField"
+        type="password"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        maxlength="5"
+        autocomplete="off"
+        placeholder="·····"
+        oninput="onPinInput(this.value)"
+      >
+      <div class="pin-dots-overlay" id="pinDotsOverlay">
+        <div class="pin-dot" id="pd0"></div>
+        <div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div>
+        <div class="pin-dot" id="pd3"></div>
+        <div class="pin-dot" id="pd4"></div>
+      </div>
+    </div>
+    <div class="pin-hint">Toca el campo e ingresa tu PIN</div>
+    <div class="pin-error-msg" id="pinError"></div>
+  </div>
+</div>
+
+<div class="app-header">
+  <div class="header-top">
+    <div class="app-title">💰 Mi <span>Planificador</span></div>
+    <div class="header-actions">
+      <button class="btn-icon" onclick="exportData()" title="Exportar">💾</button>
+      <button class="btn-icon" onclick="document.getElementById('importFile').click()" title="Importar">📂</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
+  </div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" data-page="semanas" onclick="switchPage('semanas')">📅 Semanas</div>
+    <div class="nav-tab" data-page="ingresos" onclick="switchPage('ingresos')">💵 Ingresos</div>
+    <div class="nav-tab" data-page="gastos-fijos" onclick="switchPage('gastos-fijos')">📌 Fijos</div>
+    <div class="nav-tab" data-page="congelado" onclick="switchPage('congelado')">🧊 Congelado</div>
+    <div class="nav-tab" data-page="datos" onclick="switchPage('datos')">⚙️ Datos</div>
+  </div>
+</div>
+
+<main>
+
+<!-- SEMANAS -->
+<div class="page active" id="page-semanas">
+  <div style="height:12px"></div>
+
+  <!-- FROZEN BANNER -->
+  <div class="frozen-banner" id="frozenBanner" style="display:none">
+    <div class="frozen-banner-left">
+      <span class="frozen-banner-icon">🧊</span>
+      <div>
+        <div class="frozen-banner-label">Dinero congelado</div>
+        <div class="frozen-banner-total" id="frozenTotalBanner">$0.00</div>
+      </div>
+    </div>
+    <button class="frozen-toggle-btn" onclick="toggleFrozenView()">
+      <span id="frozenToggleText">Ver en semanas</span>
+    </button>
+  </div>
+
+  <div class="week-nav">
+    <button class="week-nav-btn" onclick="navigateWeeks(-1)">‹</button>
+    <div style="text-align:center">
+      <div class="week-range-label" id="weekRangeLabel">Cargando...</div>
+      <button class="today-btn" onclick="goToToday()">Hoy</button>
+    </div>
+    <button class="week-nav-btn" onclick="navigateWeeks(1)">›</button>
+  </div>
+  <div class="weeks-grid" id="weeksGrid"></div>
+  <div class="bottom-pad"></div>
+</div>
+
+<!-- INGRESOS -->
+<div class="page" id="page-ingresos">
+  <div style="height:12px"></div>
+  <div class="settings-section">
+    <div class="section-title">💵 Ingresos Programados</div>
+    <div id="incomesList"></div>
+    <button class="add-setting-btn" onclick="openAddIncome()">＋ Agregar ingreso</button>
+  </div>
+  <div class="bottom-pad"></div>
+</div>
+
+<!-- GASTOS FIJOS -->
+<div class="page" id="page-gastos-fijos">
+  <div style="height:12px"></div>
+  <div class="settings-section">
+    <div class="section-title">📌 Gastos Fijos Programados</div>
+    <div id="fixedExpensesList"></div>
+    <button class="add-setting-btn" onclick="openAddFixed()">＋ Agregar gasto fijo</button>
+  </div>
+  <div class="bottom-pad"></div>
+</div>
+
+<!-- CONGELADO -->
+<div class="page" id="page-congelado">
+  <div style="height:12px"></div>
+  <div class="settings-section">
+    <div class="section-title">🧊 Dinero Congelado</div>
+    <div id="frozenSummaryCard" style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--frozen)">Total congelado</div>
+        <div class="frozen-banner-total" id="frozenTotalPage" style="font-size:22px;margin-top:2px">$0.00</div>
+      </div>
+      <div style="font-size:32px">🧊</div>
+    </div>
+    <div id="frozenList"></div>
+    <button class="add-setting-btn" style="border-color:rgba(167,139,250,0.3);color:var(--frozen)" onclick="openAddFrozen()">＋ Congelar dinero</button>
+  </div>
+  <div class="bottom-pad"></div>
+</div>
+
+<!-- DATOS -->
+<div class="page" id="page-datos">
+  <div style="height:12px"></div>
+  <div class="data-card">
+    <div class="data-title">📤 Exportar datos</div>
+    <div class="data-desc">Guarda tus datos como archivo JSON para respaldo en la nube (Google Drive, etc.)</div>
+    <button class="btn-primary" onclick="exportData()">Descargar respaldo .json</button>
+  </div>
+  <div class="data-card">
+    <div class="data-title">📥 Importar datos</div>
+    <div class="data-desc">Carga un respaldo previo. <strong style="color:var(--danger)">Esto reemplaza todos los datos actuales.</strong></div>
+    <button class="btn-secondary" onclick="document.getElementById('importFile').click()">Cargar archivo .json</button>
+  </div>
+  <div class="data-card">
+    <div class="data-title">🗑️ Limpiar todo</div>
+    <div class="data-desc">Borra todos los datos y vuelve al inicio.</div>
+    <button class="btn-sm danger" style="width:100%;padding:10px;" onclick="clearAll()">Borrar todos los datos</button>
+  </div>
+  <div class="bottom-pad"></div>
+</div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<!-- MODAL: ADD EXPENSE -->
+<div class="modal-overlay" id="modalExpense">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalExpenseTitle">Agregar entrada</div>
+    <div class="form-group">
+      <label class="form-label">Descripción</label>
+      <input class="form-input" id="expDesc" placeholder="Ej: Supermercado" type="text">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Monto ($)</label>
+      <input class="form-input" id="expAmount" placeholder="0.00" type="number" min="0" step="0.01">
+    </div>
+    <div class="form-group">
+      <label class="form-check">
+        <input type="checkbox" id="expIsIncome">
+        <span>Es un ingreso (no gasto)</span>
+      </label>
+    </div>
+    <input type="hidden" id="expWeekKey">
+    <input type="hidden" id="expEditId">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modalExpense')">Cancelar</button>
+      <button class="btn-confirm" onclick="saveExpenseEntry()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDIT AUTO OVERRIDE -->
+<div class="modal-overlay" id="modalEditAuto">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalEditAutoTitle">Editar monto</div>
+    <div class="form-group">
+      <label class="form-label">Monto ($)</label>
+      <input class="form-input" id="autoAmount" placeholder="0.00" type="number" min="0" step="0.01">
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin:-6px 0 10px">Solo afecta esta semana.</div>
+    <input type="hidden" id="autoWeekKey">
+    <input type="hidden" id="autoEntryId">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modalEditAuto')">Cancelar</button>
+      <button class="btn-confirm" onclick="saveAutoOverride()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: INCOME -->
+<div class="modal-overlay" id="modalIncome">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalIncomeTitle">Agregar ingreso</div>
+    <div class="form-group">
+      <label class="form-label">Nombre</label>
+      <input class="form-input" id="incName" placeholder="Ej: Sueldo" type="text">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Monto base ($)</label>
+      <input class="form-input" id="incAmount" placeholder="0.00" type="number" min="0" step="0.01">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Frecuencia</label>
+      <select class="form-input" id="incFreq" onchange="updateIncFreqFields()">
+        <option value="biweekly">Cada 2 semanas (quincenal)</option>
+        <option value="weekly">Semanal</option>
+        <option value="monthly">Mensual</option>
+      </select>
+    </div>
+    <div id="incBiweeklyFields">
+      <div class="form-group">
+        <label class="form-label">Próxima fecha de pago</label>
+        <input class="form-input" id="incNextDate" type="date">
+      </div>
+    </div>
+    <div id="incMonthlyFields" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Día del mes (1–31)</label>
+        <input class="form-input" id="incMonthDay" placeholder="15" type="number" min="1" max="31">
+      </div>
+    </div>
+    <input type="hidden" id="incEditId">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modalIncome')">Cancelar</button>
+      <button class="btn-confirm" onclick="saveIncome()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: FIXED EXPENSE -->
+<div class="modal-overlay" id="modalFixed">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalFixedTitle">Agregar gasto fijo</div>
+    <div class="form-group">
+      <label class="form-label">Nombre</label>
+      <input class="form-input" id="fixName" placeholder="Ej: Alquiler" type="text">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Monto ($)</label>
+      <input class="form-input" id="fixAmount" placeholder="0.00" type="number" min="0" step="0.01">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Frecuencia</label>
+      <select class="form-input" id="fixFreq" onchange="updateFixFreqFields()">
+        <option value="monthly">Mensual (día fijo del mes)</option>
+        <option value="weekly">Semanal</option>
+        <option value="biweekly">Cada 2 semanas</option>
+        <option value="custom_date">Fecha exacta (único)</option>
+      </select>
+    </div>
+    <div id="fixMonthlyFields">
+      <div class="form-group">
+        <label class="form-label">Día límite de pago (del mes)</label>
+        <input class="form-input" id="fixMonthDay" placeholder="15" type="number" min="1" max="31">
+      </div>
+    </div>
+    <div id="fixBiweeklyFields" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Próxima fecha de pago</label>
+        <input class="form-input" id="fixNextDate" type="date">
+      </div>
+    </div>
+    <div id="fixCustomFields" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Fecha exacta</label>
+        <input class="form-input" id="fixCustomDate" type="date">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ícono</label>
+      <div class="icon-grid" id="fixIconGrid"></div>
+    </div>
+    <input type="hidden" id="fixEditId">
+    <input type="hidden" id="fixSelectedIcon" value="📌">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modalFixed')">Cancelar</button>
+      <button class="btn-confirm" onclick="saveFixed()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: FREEZE MONEY -->
+<div class="modal-overlay" id="modalFreeze">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalFreezeTitle">🧊 Congelar dinero</div>
+    <div class="form-group">
+      <label class="form-label">Nombre / Descripción</label>
+      <input class="form-input" id="frzName" placeholder="Ej: Ahorro vacaciones" type="text">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Monto a congelar ($)</label>
+      <input class="form-input" id="frzAmount" placeholder="0.00" type="number" min="0" step="0.01">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fecha de descongelamiento</label>
+      <input class="form-input" id="frzDate" type="date">
+    </div>
+    <input type="hidden" id="frzEditId">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modalFreeze')">Cancelar</button>
+      <button class="btn-confirm frozen-confirm" onclick="saveFrozen()">Congelar 🧊</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ICONS = ['📌','🏠','🚗','⛽','🛒','💊','📱','💡','🌐','🎓','🏋️','🎉','👶','🐾','🎵','🏥','💳','🔧','✈️','🍽️'];
+const MAX_WEEKS = 10;
+
+let showFrozen = false;
+
+let state = {
+  incomes: [],
+  fixedExpenses: [],
+  frozen: [],      // [{id, name, amount, unfreezeDate}]
+  weeks: {},       // {[wk]: {overrides:{}, extraEntries:[], checked:{[id]:true}, checkedAmounts:{[id]:amount}}}
+  weekOffset: 0,
+};
+
+// ── UTILS ──
+function uid() { return Math.random().toString(36).substr(2,9); }
+function toDateStr(d) { return d.toISOString().split('T')[0]; }
+function parseDate(s) { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function fmt(n) { const v=Number(n)||0; return '$'+Math.abs(v).toLocaleString('es',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+function formatDateES(d) {
+  const D=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const M=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  return `${D[d.getDay()]} ${d.getDate()} ${M[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function getPayWeekFriday(date) {
+  const d=new Date(date); d.setHours(0,0,0,0);
+  const diff=(d.getDay()-5+7)%7;
+  d.setDate(d.getDate()-diff); return d;
+}
+function getCurrentWeekFriday() {
+  const t=new Date(); t.setHours(0,0,0,0); return getPayWeekFriday(t);
+}
+function weekKey(friday) { return toDateStr(friday); }
+
+// Always show current week + next 3, but allow offset navigation
+function getVisibleFridays() {
+  const cur = getCurrentWeekFriday();
+  const fridays=[];
+  for(let i=0;i<4;i++){
+    const d=new Date(cur);
+    d.setDate(d.getDate()+(i + state.weekOffset*4)*7);
+    fridays.push(d);
+  }
+  return fridays;
+}
+
+// ── INCOME LOGIC ──
+function getIncomeForWeek(friday) {
+  const wk=weekKey(friday); const entries=[];
+  state.incomes.forEach(inc=>{
+    let applies=false;
+    if(inc.freq==='weekly') applies=true;
+    else if(inc.freq==='biweekly'){
+      if(!inc.nextDate) return;
+      const base=getPayWeekFriday(parseDate(inc.nextDate));
+      const diff=Math.round((friday-base)/(7*864e5));
+      applies=diff%2===0;
+    } else if(inc.freq==='monthly'){
+      const yr=friday.getFullYear(),mo=friday.getMonth();
+      const nf=new Date(friday); nf.setDate(nf.getDate()+6);
+      [-1,0,1].forEach(delta=>{
+        const dd=new Date(yr,mo+delta,inc.monthDay||1);
+        if(dd>=friday&&dd<=nf) applies=true;
+      });
+    }
+    if(applies){
+      const ov=state.weeks[wk]?.overrides?.[inc.id];
+      const amount=ov!==undefined?ov:inc.amount;
+      entries.push({id:inc.id,label:inc.name,amount,isAuto:true,type:'income'});
+    }
+  });
+  return entries;
+}
+
+// ── FIXED EXPENSE LOGIC ──
+function getFixedForWeek(friday) {
+  const wk=weekKey(friday); const entries=[];
+  state.fixedExpenses.forEach(fix=>{
+    let applies=false;
+    const nf=new Date(friday); nf.setDate(nf.getDate()+6);
+    if(fix.freq==='weekly') applies=true;
+    else if(fix.freq==='biweekly'){
+      if(!fix.nextDate) return;
+      const base=getPayWeekFriday(parseDate(fix.nextDate));
+      const diff=Math.round(Math.abs(friday-base)/(7*864e5));
+      applies=diff%2===0;
+    } else if(fix.freq==='monthly'){
+      const yr=friday.getFullYear(),mo=friday.getMonth();
+      [-1,0,1].forEach(delta=>{
+        const dd=new Date(yr,mo+delta,fix.monthDay||1);
+        if(dd>=friday&&dd<=nf) applies=true;
+      });
+    } else if(fix.freq==='custom_date'){
+      if(!fix.customDate) return;
+      const cd=parseDate(fix.customDate);
+      if(cd>=friday&&cd<=nf) applies=true;
+    }
+    if(applies){
+      const ov=state.weeks[wk]?.overrides?.[fix.id];
+      const amount=ov!==undefined?ov:fix.amount;
+      entries.push({id:fix.id,label:fix.name,amount,icon:fix.icon||'📌',isAuto:true,type:'fixed'});
+    }
+  });
+  return entries;
+}
+
+// ── FROZEN HELPERS ──
+function getTotalFrozen(){
+  return state.frozen.reduce((s,f)=>s+Number(f.amount||0),0);
+}
+
+// Frozen items that unfreeze during this pay week (fri to fri+6)
+function getUnfreezeForWeek(friday) {
+  const nf=new Date(friday); nf.setDate(nf.getDate()+6);
+  return state.frozen.filter(f=>{
+    if(!f.unfreezeDate) return false;
+    const ud=parseDate(f.unfreezeDate);
+    return ud>=friday&&ud<=nf;
+  });
+}
+
+// Frozen items that were frozen BEFORE or DURING this week and haven't unfrozen yet
+// These reduce available money
+function getFrozenDeductionForWeek(friday){
+  const nf=new Date(friday); nf.setDate(nf.getDate()+6);
+  return state.frozen.reduce((sum,f)=>{
+    // Deduct if no unfreeze date, or unfreeze date is after this week
+    if(!f.unfreezeDate) return sum+Number(f.amount||0);
+    const ud=parseDate(f.unfreezeDate);
+    if(ud>nf) return sum+Number(f.amount||0); // still frozen after this week
+    return sum; // unfreezes this week or already unfrozen — don't deduct
+  },0);
+}
+
+// ── CORE CALCULATION ──
+// Returns net sobrante for a given friday week.
+// Uses a memoization cache per render cycle to avoid redundant recursion.
+let _sobraCache = {};
+
+function getSobrante(friday) {
+  const wk=weekKey(friday);
+  if(_sobraCache[wk]!==undefined) return _sobraCache[wk];
+
+  const incomes=getIncomeForWeek(friday);
+  const fixed=getFixedForWeek(friday);
+  const extra=state.weeks[wk]?.extraEntries||[];
+  const overrides=state.weeks[wk]?.overrides||{};
+  const checked=state.weeks[wk]?.checked||{};
+  const checkedAmounts=state.weeks[wk]?.checkedAmounts||{};
+  const pendingAmounts=state.weeks[wk]?.pendingAmounts||{};
+
+  // Carry = sobrante of previous week
+  const prevFriday=new Date(friday); prevFriday.setDate(prevFriday.getDate()-7);
+  const today=new Date(); today.setHours(0,0,0,0);
+  const weeksAgo=Math.round((today-prevFriday)/(7*864e5));
+  const carry = weeksAgo > MAX_WEEKS+1
+    ? (state.baseCarry||0)
+    : getSobrante(prevFriday).net;
+
+  // Incomes for this week
+  let totalIncome = carry;
+  incomes.forEach(i=>{
+    const amt=overrides[i.id]!==undefined?overrides[i.id]:i.amount;
+    totalIncome+=Number(amt)||0;
+  });
+  extra.filter(e=>e.isIncome).forEach(e=>totalIncome+=Number(e.amount)||0);
+
+  // Unfreeze income (only when showFrozen toggle is ON, or always add it since it's real money returning)
+  // Always add unfreeze as real income — it's money returning regardless of toggle
+  getUnfreezeForWeek(friday).forEach(f=>totalIncome+=Number(f.amount||0));
+
+  // Expenses for this week
+  let totalExpense=0;
+  fixed.forEach(f=>{
+    const amt=checked[f.id]
+      ? (checkedAmounts[f.id]!==undefined ? checkedAmounts[f.id] : (overrides[f.id]!==undefined ? overrides[f.id] : f.amount))
+      : (overrides[f.id]!==undefined ? overrides[f.id] : f.amount);
+    totalExpense+=Number(amt)||0;
+  });
+  extra.filter(e=>!e.isIncome).forEach(e=>{
+    const amt=checked[e.id]
+      ? (checkedAmounts[e.id]!==undefined ? checkedAmounts[e.id] : (overrides[e.id]!==undefined ? overrides[e.id] : e.amount))
+      : (overrides[e.id]!==undefined ? overrides[e.id] : e.amount);
+    totalExpense+=Number(amt)||0;
+  });
+
+  // Frozen deduction — frozen money is not available
+  // Only deduct from the CURRENT week to avoid compounding across weeks
+  const curFriday=getCurrentWeekFriday();
+  if(toDateStr(friday)===toDateStr(curFriday)){
+    totalExpense+=getFrozenDeductionForWeek(friday);
+  }
+
+  const net=totalIncome-totalExpense;
+  const result={totalIncome, totalExpense, net, carry};
+  _sobraCache[wk]=result;
+  return result;
+}
+
+function clearSobraCache(){ _sobraCache={}; }
+
+// ── PARTIAL SOBRANTE (current week only) ──
+// Only checked incomes minus checked expenses = what's really in your account now
+function getPartialSobrante(friday) {
+  const wk=weekKey(friday);
+  const incomes=getIncomeForWeek(friday);
+  const fixed=getFixedForWeek(friday);
+  const extra=state.weeks[wk]?.extraEntries||[];
+  const overrides=state.weeks[wk]?.overrides||{};
+  const checked=state.weeks[wk]?.checked||{};
+  const checkedAmounts=state.weeks[wk]?.checkedAmounts||{};
+
+  // Carry always counts (it's already in your account)
+  const {carry}=getSobrante(friday);
+  let partial=carry;
+
+  // Only checked incomes
+  incomes.forEach(i=>{
+    if(checked[i.id]){
+      const amt=checkedAmounts[i.id]!==undefined?checkedAmounts[i.id]:(overrides[i.id]!==undefined?overrides[i.id]:i.amount);
+      partial+=Number(amt)||0;
+    }
+  });
+  extra.filter(e=>e.isIncome).forEach(e=>{
+    if(checked[e.id]){
+      const amt=checkedAmounts[e.id]!==undefined?checkedAmounts[e.id]:(overrides[e.id]!==undefined?overrides[e.id]:e.amount);
+      partial+=Number(amt)||0;
+    }
+  });
+
+  // Only checked expenses
+  fixed.forEach(f=>{
+    if(checked[f.id]){
+      const amt=checkedAmounts[f.id]!==undefined?checkedAmounts[f.id]:(overrides[f.id]!==undefined?overrides[f.id]:f.amount);
+      partial-=Number(amt)||0;
+    }
+  });
+  extra.filter(e=>!e.isIncome).forEach(e=>{
+    if(checked[e.id]){
+      const amt=checkedAmounts[e.id]!==undefined?checkedAmounts[e.id]:(overrides[e.id]!==undefined?overrides[e.id]:e.amount);
+      partial-=Number(amt)||0;
+    }
+  });
+
+  // Frozen deduction still applies
+  const curFriday=getCurrentWeekFriday();
+  if(toDateStr(friday)===toDateStr(curFriday)){
+    partial-=getFrozenDeductionForWeek(friday);
+  }
+
+  return partial;
+}
+
+// ── RENDER WEEKS ──
+function renderWeeks(){
+  clearSobraCache(); // fresh calculations every render
+  const fridays=getVisibleFridays();
+  const grid=document.getElementById('weeksGrid');
+  const curFriday=getCurrentWeekFriday();
+  const M=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+  const first=fridays[0],last=fridays[fridays.length-1];
+  document.getElementById('weekRangeLabel').textContent=
+    `${first.getDate()} ${M[first.getMonth()]} — ${last.getDate()} ${M[last.getMonth()]} ${last.getFullYear()}`;
+
+  // Frozen banner
+  const tf=getTotalFrozen();
+  const fb=document.getElementById('frozenBanner');
+  if(tf>0){
+    fb.style.display='flex';
+    document.getElementById('frozenTotalBanner').textContent=fmt(tf);
+    document.getElementById('frozenToggleText').textContent=showFrozen?'Ocultar congelado':'Ver en semanas';
+  } else { fb.style.display='none'; }
+
+  grid.innerHTML='';
+
+  fridays.forEach(friday=>{
+    const wk=weekKey(friday);
+    const isCurrent=toDateStr(friday)===toDateStr(curFriday);
+    const incomes=getIncomeForWeek(friday);
+    const fixed=getFixedForWeek(friday);
+    const extra=state.weeks[wk]?.extraEntries||[];
+    const checked=state.weeks[wk]?.checked||{};
+    const checkedAmounts=state.weeks[wk]?.checkedAmounts||{};
+    const {totalIncome,totalExpense,net,carry}=getSobrante(friday);
+    const isNeg=net<0;
+    const unfreeze=getUnfreezeForWeek(friday);
+
+    // Partial sobrante (current week only)
+    const partial = isCurrent ? getPartialSobrante(friday) : null;
+    const isNegPartial = partial!==null && partial<0;
+
+    // Build income rows
+    let incPending='', incDone='';
+    if(carry!==0){
+      incPending+=`<div class="entry-row carry-row">
+        <span class="entry-amount income-val">${carry>=0?'+':''}${fmt(carry)}</span>
+        <span class="entry-label">↩ Sobrante ant.</span>
+      </div>`;
+    }
+    if(showFrozen) unfreeze.forEach(f=>{
+      incPending+=`<div class="entry-row unfreeze-row">
+        <span class="entry-amount">${fmt(f.amount)}</span>
+        <span class="entry-label">🧊 ${esc(f.name)}</span>
+      </div>`;
+    });
+    incomes.forEach(e=>{
+      const isDone=!!checked[e.id];
+      const row=`<div class="entry-row${isDone?' done':''}">
+        <button class="check-btn${isDone?' checked':''}" onclick="toggleCheck('${wk}','${e.id}',${e.amount},'income')" title="${isDone?'Pagado':'Marcar pagado'}">${isDone?'✓':''}</button>
+        <span class="entry-amount income-val">${fmt(isDone?(checkedAmounts[e.id]||e.amount):e.amount)}</span>
+        <span class="entry-label">${esc(e.label)}</span>
+        ${!isDone?`<div class="entry-actions"><button class="entry-edit-btn" onclick="openEditAuto('${wk}','${e.id}','${esc(e.label)}',${e.amount})">✏️</button></div>`:''}
+      </div>`;
+      if(isDone) incDone+=row; else incPending+=row;
+    });
+    extra.filter(e=>e.isIncome).forEach(e=>{
+      const isDone=!!checked[e.id];
+      const row=`<div class="entry-row${isDone?' done':''}">
+        <button class="check-btn${isDone?' checked':''}" onclick="toggleCheck('${wk}','${e.id}',${e.amount},'extra')">${isDone?'✓':''}</button>
+        <span class="entry-amount income-val">${fmt(isDone?(checkedAmounts[e.id]||e.amount):e.amount)}</span>
+        <span class="entry-label">${esc(e.desc)}</span>
+        ${!isDone?`<div class="entry-actions">
+          <button class="entry-edit-btn" onclick="openEditExtra('${wk}','${e.id}')">✏️</button>
+          <button class="entry-edit-btn" onclick="deleteExtra('${wk}','${e.id}')">🗑</button>
+        </div>`:''}
+      </div>`;
+      if(isDone) incDone+=row; else incPending+=row;
+    });
+
+    // Build expense rows
+    let expPending='', expDone='';
+    fixed.forEach(e=>{
+      const isDone=!!checked[e.id];
+      const curAmt = isDone
+        ? (checkedAmounts[e.id]!==undefined ? checkedAmounts[e.id] : (state.weeks[wk]?.overrides?.[e.id]!==undefined ? state.weeks[wk].overrides[e.id] : e.amount))
+        : (state.weeks[wk]?.overrides?.[e.id]!==undefined ? state.weeks[wk].overrides[e.id] : e.amount);
+      const row=`<div class="entry-row fixed-expense${isDone?' done':''}">
+        <button class="check-btn${isDone?' checked':''}" onclick="toggleCheck('${wk}','${e.id}',${curAmt},'fixed')">${isDone?'✓':''}</button>
+        <span class="entry-icon">${e.icon}</span>
+        ${!isDone
+          ? `<input class="amount-editable" type="number" min="0" step="0.01" value="${curAmt}"
+               onblur="updateEntryAmount('${wk}','${e.id}',this.value)"
+               onclick="event.stopPropagation()">`
+          : `<span class="entry-amount">${fmt(curAmt)}</span>`}
+        <span class="entry-label" style="color:#fde68a">${esc(e.label)}</span>
+        ${!isDone?`<div class="entry-actions"><button class="entry-edit-btn" onclick="openEditAuto('${wk}','${e.id}','${esc(e.label)}',${curAmt})">✏️</button></div>`:''}
+      </div>`;
+      if(isDone) expDone+=row; else expPending+=row;
+    });
+    extra.filter(e=>!e.isIncome).forEach(e=>{
+      const isDone=!!checked[e.id];
+      const curAmt = isDone
+        ? (checkedAmounts[e.id]!==undefined ? checkedAmounts[e.id] : (state.weeks[wk]?.overrides?.[e.id]!==undefined ? state.weeks[wk].overrides[e.id] : e.amount))
+        : (state.weeks[wk]?.overrides?.[e.id]!==undefined ? state.weeks[wk].overrides[e.id] : e.amount);
+      const row=`<div class="entry-row${isDone?' done':''}">
+        <button class="check-btn${isDone?' checked':''}" onclick="toggleCheck('${wk}','${e.id}',${curAmt},'extra')">${isDone?'✓':''}</button>
+        ${!isDone
+          ? `<input class="amount-editable" type="number" min="0" step="0.01" value="${curAmt}"
+               onblur="updateEntryAmount('${wk}','${e.id}',this.value)"
+               onclick="event.stopPropagation()">`
+          : `<span class="entry-amount" style="color:var(--warn)">${fmt(curAmt)}</span>`}
+        <span class="entry-label">${esc(e.desc)}</span>
+        ${!isDone?`<div class="entry-actions">
+          <button class="entry-edit-btn" onclick="openEditExtra('${wk}','${e.id}')">✏️</button>
+          <button class="entry-edit-btn" onclick="deleteExtra('${wk}','${e.id}')">🗑</button>
+        </div>`:''}
+      </div>`;
+      if(isDone) expDone+=row; else expPending+=row;
+    });
+
+    const incHTML = (incPending||'') + (incDone ? `<div class="checked-divider">✓ Recibidos</div>${incDone}` : '');
+    const expHTML = (expPending||'') + (expDone ? `<div class="checked-divider">✓ Pagados</div>${expDone}` : '');
+
+    const frozenLine=getTotalFrozen()>0
+      ?`<div class="sobrante-frozen-line">🧊 ${fmt(getTotalFrozen())} congelado</div>`:'';
+
+    // Sobrante section HTML
+    const sobranteHTML = isCurrent ? `
+      <div class="sobrante-dual">
+        <div class="sobrante-dual-row">
+          <div class="sobrante-dual-label">
+            💳 <span class="lbl-badge parcial">Parcial</span>
+            <span style="font-size:9px;color:var(--text3);margin-left:2px">lo que tienes ahora</span>
+          </div>
+          <span class="sobrante-dual-amount parcial${isNegPartial?' negative':''}">${isNegPartial?'':'+'}${fmt(partial)}</span>
+        </div>
+        <div class="sobrante-divider"></div>
+        <div class="sobrante-dual-row">
+          <div class="sobrante-dual-label">
+            💰 <span class="lbl-badge proyectado">Proyectado</span>
+            <span style="font-size:9px;color:var(--text3);margin-left:2px">al final de semana</span>
+          </div>
+          <span class="sobrante-dual-amount proyectado${isNeg?' negative':''}">${isNeg?'':'+'}${fmt(net)}</span>
+        </div>
+        ${frozenLine}
+      </div>` : `
+      <div class="sobrante-display">
+        <div class="sobrante-left">
+          <span class="sobrante-label">💰 Sobrante proyectado</span>
+          ${frozenLine}
+        </div>
+        <span class="sobrante-amount${isNeg?' negative':''}">${isNeg?'':'+'}${fmt(net)}</span>
+      </div>`;
+
+    const card=document.createElement('div');
+    card.className=`week-card${isCurrent?' current':''}${isNeg?' negative':''}`;
+    card.innerHTML=`
+      <div class="week-header" onclick="toggleCollapse('${wk}')">
+        <div class="week-header-left">
+          <span class="week-badge${isCurrent?' current-badge':''}">${isCurrent?'✦ Esta semana':'Semana'}</span>
+          <span class="week-date">${formatDateES(friday)}</span>
+        </div>
+        <button class="collapse-btn" id="colBtn-${wk}">▼</button>
+      </div>
+      ${sobranteHTML}
+      <div class="week-body" id="wbody-${wk}">
+        ${(incHTML||expHTML) ? `
+        <div class="week-section">
+          <div class="col-header income-header">💵 Ingresos</div>
+          ${incHTML||'<div style="color:var(--text3);font-size:12px;padding:6px 0">Sin ingresos esta semana</div>'}
+        </div>
+        <div class="week-section">
+          <div class="col-header expense-header">💸 Gastos</div>
+          ${expHTML||'<div style="color:var(--text3);font-size:12px;padding:6px 0">Sin gastos esta semana</div>'}
+        </div>` : `<div style="color:var(--text3);font-size:12px;padding:8px 0;text-align:center">Sin entradas esta semana</div>`}
+        <div class="week-totals">
+          <div class="total-item">
+            <div class="total-label">Ingresos</div>
+            <div class="total-val t-income">${fmt(totalIncome)}</div>
+          </div>
+          <div class="total-item">
+            <div class="total-label">Gastos</div>
+            <div class="total-val t-expense">${fmt(totalExpense)}</div>
+          </div>
+          <div class="total-item">
+            <div class="total-label">Neto</div>
+            <div class="total-val t-net${isNeg?' negative':''}">${isNeg?'':'+'}${fmt(net)}</div>
+          </div>
+        </div>
+        <button class="add-expense-btn" onclick="openAddExpense('${wk}')">＋ Agregar entrada</button>
+        <button class="freeze-week-btn" onclick="openAddFrozenFromWeek('${wk}')">🧊 Congelar dinero</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function toggleCollapse(wk){
+  const b=document.getElementById('wbody-'+wk),btn=document.getElementById('colBtn-'+wk);
+  if(b.style.display==='none'){b.style.display='';btn.classList.remove('collapsed');}
+  else{b.style.display='none';btn.classList.add('collapsed');}
+}
+
+function toggleFrozenView(){
+  showFrozen=!showFrozen;
+  renderWeeks();
+}
+
+// ── CHECK SYSTEM ──
+function toggleCheck(wk,id,defaultAmt,type){
+  if(!state.weeks[wk]) state.weeks[wk]={overrides:{},extraEntries:[],checked:{},checkedAmounts:{}};
+  if(!state.weeks[wk].checked) state.weeks[wk].checked={};
+  if(!state.weeks[wk].checkedAmounts) state.weeks[wk].checkedAmounts={};
+
+  const already=!!state.weeks[wk].checked[id];
+  if(already){
+    delete state.weeks[wk].checked[id];
+    delete state.weeks[wk].checkedAmounts[id];
+  } else {
+    // Use override if exists, else defaultAmt passed in (which already reflects current override)
+    const finalAmt = state.weeks[wk].overrides?.[id]!==undefined
+      ? state.weeks[wk].overrides[id]
+      : Number(defaultAmt)||0;
+    state.weeks[wk].checked[id]=true;
+    state.weeks[wk].checkedAmounts[id]=finalAmt;
+  }
+  save(); clearSobraCache(); renderWeeks();
+}
+
+function updateEntryAmount(wk,id,val){
+  if(!state.weeks[wk]) state.weeks[wk]={overrides:{},extraEntries:[],checked:{},checkedAmounts:{}};
+  if(!state.weeks[wk].overrides) state.weeks[wk].overrides={};
+  const n=parseFloat(val);
+  if(!isNaN(n) && n>=0) state.weeks[wk].overrides[id]=n;
+  save(); clearSobraCache(); renderWeeks();
+}
+
+// ── ADD EXPENSE ──
+function openAddExpense(wk){
+  document.getElementById('expDesc').value='';
+  document.getElementById('expAmount').value='';
+  document.getElementById('expIsIncome').checked=false;
+  document.getElementById('expWeekKey').value=wk;
+  document.getElementById('expEditId').value='';
+  document.getElementById('modalExpenseTitle').textContent='Agregar entrada';
+  openModal('modalExpense');
+}
+function openEditExtra(wk,id){
+  const e=(state.weeks[wk]?.extraEntries||[]).find(x=>x.id===id);
+  if(!e) return;
+  document.getElementById('expDesc').value=e.desc;
+  document.getElementById('expAmount').value=e.amount;
+  document.getElementById('expIsIncome').checked=!!e.isIncome;
+  document.getElementById('expWeekKey').value=wk;
+  document.getElementById('expEditId').value=id;
+  document.getElementById('modalExpenseTitle').textContent='Editar entrada';
+  openModal('modalExpense');
+}
+function saveExpenseEntry(){
+  const desc=document.getElementById('expDesc').value.trim();
+  const amount=parseFloat(document.getElementById('expAmount').value);
+  const isIncome=document.getElementById('expIsIncome').checked;
+  const wk=document.getElementById('expWeekKey').value;
+  const editId=document.getElementById('expEditId').value;
+  if(!desc||isNaN(amount)||amount<0){showToast('⚠️ Completa todos los campos');return;}
+  if(!state.weeks[wk]) state.weeks[wk]={overrides:{},extraEntries:[],checked:{},checkedAmounts:{}};
+  if(!state.weeks[wk].extraEntries) state.weeks[wk].extraEntries=[];
+  if(editId){
+    const idx=state.weeks[wk].extraEntries.findIndex(e=>e.id===editId);
+    if(idx>=0){
+      state.weeks[wk].extraEntries[idx]={id:editId,desc,amount,isIncome};
+      // Sync override and checkedAmount to new value
+      if(!state.weeks[wk].overrides) state.weeks[wk].overrides={};
+      state.weeks[wk].overrides[editId]=amount;
+      if(state.weeks[wk].checked?.[editId]){
+        if(!state.weeks[wk].checkedAmounts) state.weeks[wk].checkedAmounts={};
+        state.weeks[wk].checkedAmounts[editId]=amount;
+      }
+    }
+  } else {
+    state.weeks[wk].extraEntries.push({id:uid(),desc,amount,isIncome});
+  }
+  save(); clearSobraCache(); renderWeeks(); closeModal('modalExpense'); showToast('✅ Guardado');
+}
+function deleteExtra(wk,id){
+  if(!state.weeks[wk]) return;
+  state.weeks[wk].extraEntries=(state.weeks[wk].extraEntries||[]).filter(e=>e.id!==id);
+  save(); clearSobraCache(); renderWeeks(); showToast('🗑 Eliminado');
+}
+
+// ── EDIT AUTO OVERRIDE ──
+function openEditAuto(wk,id,label,currentAmount){
+  document.getElementById('autoAmount').value=currentAmount;
+  document.getElementById('autoWeekKey').value=wk;
+  document.getElementById('autoEntryId').value=id;
+  document.getElementById('modalEditAutoTitle').textContent=`Editar: ${label}`;
+  openModal('modalEditAuto');
+}
+function saveAutoOverride(){
+  const amount=parseFloat(document.getElementById('autoAmount').value);
+  const wk=document.getElementById('autoWeekKey').value;
+  const id=document.getElementById('autoEntryId').value;
+  if(isNaN(amount)||amount<0){showToast('⚠️ Monto inválido');return;}
+  if(!state.weeks[wk]) state.weeks[wk]={overrides:{},extraEntries:[],checked:{},checkedAmounts:{}};
+  if(!state.weeks[wk].overrides) state.weeks[wk].overrides={};
+  state.weeks[wk].overrides[id]=amount;
+  // If already checked, update checkedAmounts too
+  if(state.weeks[wk].checked?.[id]){
+    if(!state.weeks[wk].checkedAmounts) state.weeks[wk].checkedAmounts={};
+    state.weeks[wk].checkedAmounts[id]=amount;
+  }
+  save(); clearSobraCache(); renderWeeks(); closeModal('modalEditAuto'); showToast('✅ Monto actualizado');
+}
+
+// ── INCOME SETTINGS ──
+function renderIncomes(){
+  const list=document.getElementById('incomesList');
+  if(!state.incomes.length){
+    list.innerHTML='<div class="empty-state"><div class="empty-icon">💵</div><div class="empty-text">Sin ingresos programados</div></div>'; return;
+  }
+  const FL={weekly:'Semanal',biweekly:'Quincenal',monthly:'Mensual'};
+  list.innerHTML=state.incomes.map(inc=>`
+    <div class="settings-item">
+      <div class="settings-item-info">
+        <div class="settings-item-name">${esc(inc.name)}</div>
+        <div class="settings-item-sub">${FL[inc.freq]||inc.freq}${inc.nextDate?' · Próx: '+inc.nextDate:inc.monthDay?' · Día '+inc.monthDay:''}</div>
+      </div>
+      <div class="settings-item-amount">${fmt(inc.amount)}</div>
+      <div class="settings-item-actions">
+        <button class="btn-sm" onclick="openEditIncome('${inc.id}')">✏️</button>
+        <button class="btn-sm danger" onclick="deleteIncome('${inc.id}')">🗑</button>
+      </div>
+    </div>`).join('');
+}
+function openAddIncome(){
+  document.getElementById('incName').value='';
+  document.getElementById('incAmount').value='';
+  document.getElementById('incFreq').value='biweekly';
+  document.getElementById('incNextDate').value='';
+  document.getElementById('incMonthDay').value='';
+  document.getElementById('incEditId').value='';
+  document.getElementById('modalIncomeTitle').textContent='Agregar ingreso';
+  updateIncFreqFields(); openModal('modalIncome');
+}
+function openEditIncome(id){
+  const inc=state.incomes.find(i=>i.id===id); if(!inc) return;
+  document.getElementById('incName').value=inc.name;
+  document.getElementById('incAmount').value=inc.amount;
+  document.getElementById('incFreq').value=inc.freq;
+  document.getElementById('incNextDate').value=inc.nextDate||'';
+  document.getElementById('incMonthDay').value=inc.monthDay||'';
+  document.getElementById('incEditId').value=id;
+  document.getElementById('modalIncomeTitle').textContent='Editar ingreso';
+  updateIncFreqFields(); openModal('modalIncome');
+}
+function updateIncFreqFields(){
+  const f=document.getElementById('incFreq').value;
+  document.getElementById('incBiweeklyFields').style.display=(f==='biweekly')?'block':'none';
+  document.getElementById('incMonthlyFields').style.display=(f==='monthly')?'block':'none';
+}
+function saveIncome(){
+  const name=document.getElementById('incName').value.trim();
+  const amount=parseFloat(document.getElementById('incAmount').value);
+  const freq=document.getElementById('incFreq').value;
+  const nextDate=document.getElementById('incNextDate').value;
+  const monthDay=parseInt(document.getElementById('incMonthDay').value);
+  const editId=document.getElementById('incEditId').value;
+  if(!name||isNaN(amount)){showToast('⚠️ Completa nombre y monto');return;}
+  if(freq==='biweekly'&&!nextDate){showToast('⚠️ Indica la próxima fecha');return;}
+  if(freq==='monthly'&&(!monthDay||monthDay<1||monthDay>31)){showToast('⚠️ Día del mes inválido');return;}
+  const obj={id:editId||uid(),name,amount,freq,nextDate:nextDate||null,monthDay:monthDay||null};
+  if(editId){ const idx=state.incomes.findIndex(i=>i.id===editId); if(idx>=0) state.incomes[idx]=obj; }
+  else state.incomes.push(obj);
+  save(); clearSobraCache(); renderIncomes(); renderWeeks(); closeModal('modalIncome'); showToast('✅ Ingreso guardado');
+}
+function deleteIncome(id){
+  state.incomes=state.incomes.filter(i=>i.id!==id);
+  save(); clearSobraCache(); renderIncomes(); renderWeeks(); showToast('🗑 Eliminado');
+}
+
+// ── FIXED EXPENSE SETTINGS ──
+function renderFixed(){
+  const list=document.getElementById('fixedExpensesList');
+  if(!state.fixedExpenses.length){
+    list.innerHTML='<div class="empty-state"><div class="empty-icon">📌</div><div class="empty-text">Sin gastos fijos</div></div>'; return;
+  }
+  const FL={weekly:'Semanal',biweekly:'Quincenal',monthly:'Mensual',custom_date:'Fecha única'};
+  list.innerHTML=state.fixedExpenses.map(f=>`
+    <div class="settings-item">
+      <div style="font-size:18px;flex-shrink:0">${f.icon||'📌'}</div>
+      <div class="settings-item-info">
+        <div class="settings-item-name">${esc(f.name)}</div>
+        <div class="settings-item-sub">${FL[f.freq]||f.freq}${f.monthDay?' · Día '+f.monthDay:f.nextDate?' · Próx: '+f.nextDate:f.customDate?' · '+f.customDate:''}</div>
+      </div>
+      <div class="settings-item-amount">${fmt(f.amount)}</div>
+      <div class="settings-item-actions">
+        <button class="btn-sm" onclick="openEditFixed('${f.id}')">✏️</button>
+        <button class="btn-sm danger" onclick="deleteFixed('${f.id}')">🗑</button>
+      </div>
+    </div>`).join('');
+}
+function buildIconGrid(selected){
+  document.getElementById('fixIconGrid').innerHTML=ICONS.map(ic=>
+    `<div class="icon-opt${ic===selected?' selected':''}" onclick="selectIcon('${ic}')">${ic}</div>`).join('');
+  document.getElementById('fixSelectedIcon').value=selected||'📌';
+}
+function selectIcon(ic){ document.getElementById('fixSelectedIcon').value=ic; buildIconGrid(ic); }
+function openAddFixed(){
+  ['fixName','fixAmount','fixMonthDay','fixNextDate','fixCustomDate'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fixFreq').value='monthly';
+  document.getElementById('fixEditId').value='';
+  document.getElementById('modalFixedTitle').textContent='Agregar gasto fijo';
+  buildIconGrid('📌'); updateFixFreqFields(); openModal('modalFixed');
+}
+function openEditFixed(id){
+  const f=state.fixedExpenses.find(x=>x.id===id); if(!f) return;
+  document.getElementById('fixName').value=f.name;
+  document.getElementById('fixAmount').value=f.amount;
+  document.getElementById('fixFreq').value=f.freq;
+  document.getElementById('fixMonthDay').value=f.monthDay||'';
+  document.getElementById('fixNextDate').value=f.nextDate||'';
+  document.getElementById('fixCustomDate').value=f.customDate||'';
+  document.getElementById('fixEditId').value=id;
+  document.getElementById('modalFixedTitle').textContent='Editar gasto fijo';
+  buildIconGrid(f.icon||'📌'); updateFixFreqFields(); openModal('modalFixed');
+}
+function updateFixFreqFields(){
+  const f=document.getElementById('fixFreq').value;
+  document.getElementById('fixMonthlyFields').style.display=f==='monthly'?'block':'none';
+  document.getElementById('fixBiweeklyFields').style.display=f==='biweekly'?'block':'none';
+  document.getElementById('fixCustomFields').style.display=f==='custom_date'?'block':'none';
+}
+function saveFixed(){
+  const name=document.getElementById('fixName').value.trim();
+  const amount=parseFloat(document.getElementById('fixAmount').value);
+  const freq=document.getElementById('fixFreq').value;
+  const monthDay=parseInt(document.getElementById('fixMonthDay').value);
+  const nextDate=document.getElementById('fixNextDate').value;
+  const customDate=document.getElementById('fixCustomDate').value;
+  const icon=document.getElementById('fixSelectedIcon').value;
+  const editId=document.getElementById('fixEditId').value;
+  if(!name||isNaN(amount)){showToast('⚠️ Completa nombre y monto');return;}
+  if(freq==='monthly'&&(!monthDay||monthDay<1||monthDay>31)){showToast('⚠️ Día del mes inválido');return;}
+  if(freq==='biweekly'&&!nextDate){showToast('⚠️ Indica la próxima fecha');return;}
+  if(freq==='custom_date'&&!customDate){showToast('⚠️ Indica la fecha exacta');return;}
+  const obj={id:editId||uid(),name,amount,freq,monthDay:monthDay||null,nextDate:nextDate||null,customDate:customDate||null,icon};
+  if(editId){ const idx=state.fixedExpenses.findIndex(x=>x.id===editId); if(idx>=0) state.fixedExpenses[idx]=obj; }
+  else state.fixedExpenses.push(obj);
+  save(); clearSobraCache(); renderFixed(); renderWeeks(); closeModal('modalFixed'); showToast('✅ Gasto fijo guardado');
+}
+function deleteFixed(id){
+  state.fixedExpenses=state.fixedExpenses.filter(x=>x.id!==id);
+  save(); clearSobraCache(); renderFixed(); renderWeeks(); showToast('🗑 Eliminado');
+}
+
+// ── FROZEN MONEY ──
+function renderFrozen(){
+  const total=getTotalFrozen();
+  document.getElementById('frozenTotalPage').textContent=fmt(total);
+  const list=document.getElementById('frozenList');
+  if(!state.frozen.length){
+    list.innerHTML='<div class="empty-state"><div class="empty-icon">🧊</div><div class="empty-text">No hay dinero congelado</div></div>'; return;
+  }
+  list.innerHTML=state.frozen.map(f=>`
+    <div class="settings-item frozen-item">
+      <div style="font-size:20px;flex-shrink:0">🧊</div>
+      <div class="settings-item-info">
+        <div class="settings-item-name">${esc(f.name)}</div>
+        <div class="settings-item-sub">Descongelar: ${f.unfreezeDate||'Sin fecha'}</div>
+      </div>
+      <div class="settings-item-amount">${fmt(f.amount)}</div>
+      <div class="settings-item-actions">
+        <button class="btn-sm" onclick="openEditFrozen('${f.id}')">✏️</button>
+        <button class="btn-sm danger" onclick="deleteFrozen('${f.id}')">🗑</button>
+      </div>
+    </div>`).join('');
+}
+function openAddFrozen(){
+  document.getElementById('frzName').value='';
+  document.getElementById('frzAmount').value='';
+  document.getElementById('frzDate').value='';
+  document.getElementById('frzEditId').value='';
+  document.getElementById('modalFreezeTitle').textContent='🧊 Congelar dinero';
+  openModal('modalFreeze');
+}
+function openAddFrozenFromWeek(wk){
+  openAddFrozen();
+}
+function openEditFrozen(id){
+  const f=state.frozen.find(x=>x.id===id); if(!f) return;
+  document.getElementById('frzName').value=f.name;
+  document.getElementById('frzAmount').value=f.amount;
+  document.getElementById('frzDate').value=f.unfreezeDate||'';
+  document.getElementById('frzEditId').value=id;
+  document.getElementById('modalFreezeTitle').textContent='✏️ Editar congelado';
+  openModal('modalFreeze');
+}
+function saveFrozen(){
+  const name=document.getElementById('frzName').value.trim();
+  const amount=parseFloat(document.getElementById('frzAmount').value);
+  const unfreezeDate=document.getElementById('frzDate').value;
+  const editId=document.getElementById('frzEditId').value;
+  if(!name||isNaN(amount)||amount<=0){showToast('⚠️ Completa nombre y monto');return;}
+  const obj={id:editId||uid(),name,amount,unfreezeDate:unfreezeDate||null};
+  if(editId){ const idx=state.frozen.findIndex(x=>x.id===editId); if(idx>=0) state.frozen[idx]=obj; }
+  else state.frozen.push(obj);
+  save(); clearSobraCache(); renderFrozen(); renderWeeks(); closeModal('modalFreeze'); showToast('🧊 Dinero congelado');
+}
+function deleteFrozen(id){
+  state.frozen=state.frozen.filter(x=>x.id!==id);
+  save(); clearSobraCache(); renderFrozen(); renderWeeks(); showToast('🔥 Descongelado y eliminado');
+}
+
+// ── SAVE / LOAD ──
+function save(){
+  pruneOldWeeks();
+  try{ localStorage.setItem('planificador_v2',JSON.stringify(state)); }catch(e){}
+}
+function load(){
+  try{
+    const raw=localStorage.getItem('planificador_v2');
+    if(raw){ const s=JSON.parse(raw); Object.assign(state,s); }
+  }catch(e){}
+}
+function pruneOldWeeks(){
+  const cur=getCurrentWeekFriday();
+  Object.keys(state.weeks).forEach(k=>{
+    const d=parseDate(k);
+    const weeksAgo=Math.round((cur-d)/(7*864e5));
+    if(weeksAgo>MAX_WEEKS) delete state.weeks[k];
+  });
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url;
+  a.download=`planificador_${new Date().toISOString().split('T')[0]}.json`;
+  a.click(); URL.revokeObjectURL(url); showToast('💾 Exportado');
+}
+function importData(event){
+  const file=event.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const imported=JSON.parse(e.target.result);
+      Object.assign(state,imported); save(); clearSobraCache(); renderAll(); showToast('📥 Datos importados');
+    }catch(err){ showToast('❌ Archivo inválido'); }
+    event.target.value='';
+  };
+  reader.readAsText(file);
+}
+function clearAll(){
+  if(!confirm('¿Borrar todos los datos? No se puede deshacer.')) return;
+  state={incomes:[],fixedExpenses:[],frozen:[],weeks:{},weekOffset:0};
+  save(); clearSobraCache(); renderAll(); showToast('🗑 Datos borrados');
+}
+
+// ── NAVIGATION ──
+function navigateWeeks(dir){ state.weekOffset+=dir; clearSobraCache(); renderWeeks(); }
+function goToToday(){ state.weekOffset=0; clearSobraCache(); renderWeeks(); }
+
+// ── MODALS ──
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
+});
+
+// ── TOAST ──
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+// ── PAGE SWITCH ──
+function switchPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelector(`[data-page="${name}"]`).classList.add('active');
+  if(name==='semanas') renderWeeks();
+  if(name==='ingresos') renderIncomes();
+  if(name==='gastos-fijos') renderFixed();
+  if(name==='congelado') renderFrozen();
+}
+function renderAll(){ renderWeeks(); renderIncomes(); renderFixed(); renderFrozen(); }
+
+// ── PIN ──
+const CORRECT_PIN = '79751';
+
+function onPinInput(val) {
+  // Only allow digits
+  const clean = val.replace(/\D/g,'').slice(0,5);
+  const field = document.getElementById('pinField');
+  if(field.value !== clean) { field.value = clean; }
+
+  // Update dots
+  for(let i=0;i<5;i++){
+    const dot = document.getElementById('pd'+i);
+    dot.className = 'pin-dot' + (i < clean.length ? ' filled' : '');
+  }
+
+  document.getElementById('pinError').textContent = '';
+  document.getElementById('pinWrap').classList.remove('shake');
+  field.classList.remove('error');
+
+  if(clean.length === 5) {
+    setTimeout(() => checkPin(clean), 80);
+  }
+}
+
+function checkPin(val) {
+  if(val === CORRECT_PIN) {
+    const screen = document.getElementById('pinScreen');
+    screen.style.transition = 'opacity 0.35s';
+    screen.style.opacity = '0';
+    setTimeout(() => screen.style.display = 'none', 350);
+  } else {
+    const field = document.getElementById('pinField');
+    const wrap = document.getElementById('pinWrap');
+    field.classList.add('error');
+    for(let i=0;i<5;i++){
+      document.getElementById('pd'+i).className = 'pin-dot error-dot';
+    }
+    wrap.classList.add('shake');
+    document.getElementById('pinError').textContent = 'PIN incorrecto, intenta de nuevo';
+    setTimeout(() => {
+      field.value = '';
+      field.classList.remove('error');
+      wrap.classList.remove('shake');
+      for(let i=0;i<5;i++){
+        document.getElementById('pd'+i).className = 'pin-dot';
+      }
+    }, 600);
+  }
+}
+
+// ── INIT ──
+load();
+renderAll();
+// Auto-focus PIN field
+setTimeout(() => { const f = document.getElementById('pinField'); if(f) f.focus(); }, 300);
+</script>
+</body>
+</html>
