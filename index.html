@@ -424,8 +424,8 @@ select.form-input option { background: var(--surface2); }
   position: fixed; inset: 0; z-index: 9999;
   background: var(--bg);
   display: flex; flex-direction: column; align-items: center;
-  justify-content: space-between;
-  padding: 0 0 env(safe-area-inset-bottom, 0);
+  justify-content: center; gap: 0;
+  padding: 32px 28px;
 }
 #pinScreen::before {
   content: '';
@@ -437,51 +437,64 @@ select.form-input option { background: var(--surface2); }
 }
 .pin-top {
   display: flex; flex-direction: column; align-items: center;
-  padding-top: max(48px, 8vh);
+  width: 100%; max-width: 340px;
   position: relative; z-index:1;
 }
-.pin-logo { font-size: 48px; margin-bottom: 10px; filter: drop-shadow(0 0 20px rgba(74,222,128,0.45)); }
-.pin-title { font-size: 24px; font-weight: 900; color: var(--accent); margin-bottom: 4px; letter-spacing:-0.5px; }
-.pin-subtitle { font-size: 13px; color: var(--text3); margin-bottom: 32px; }
-.pin-dots { display: flex; gap: 18px; margin-bottom: 0; }
+.pin-logo { font-size: 52px; margin-bottom: 12px; filter: drop-shadow(0 0 20px rgba(74,222,128,0.45)); }
+.pin-title { font-size: 26px; font-weight: 900; color: var(--accent); margin-bottom: 4px; letter-spacing:-0.5px; }
+.pin-subtitle { font-size: 14px; color: var(--text3); margin-bottom: 36px; }
+
+.pin-input-wrap {
+  width: 100%; position: relative; margin-bottom: 16px;
+}
+.pin-input-field {
+  width: 100%;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  color: transparent;
+  caret-color: var(--accent);
+  font-size: 32px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 16px;
+  text-align: center;
+  padding: 20px 16px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-text-security: disc;
+  text-security: disc;
+}
+.pin-input-field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(74,222,128,0.15);
+}
+.pin-input-field.error {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(248,113,113,0.15);
+}
+/* Dots overlay */
+.pin-dots-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  gap: 20px; pointer-events: none;
+}
 .pin-dot {
-  width: 18px; height: 18px; border-radius: 50%;
+  width: 16px; height: 16px; border-radius: 50%;
   border: 2px solid var(--border); background: transparent;
   transition: all 0.18s;
 }
-.pin-dot.filled { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 12px rgba(74,222,128,0.55); }
-.pin-dot.error { background: var(--danger); border-color: var(--danger); box-shadow: 0 0 12px rgba(248,113,113,0.55); }
-.pin-error-msg { color: var(--danger); font-size: 12px; font-weight: 700; margin-top: 14px;
-  height: 18px; transition: opacity 0.3s; text-align:center; }
-.pin-bottom {
-  width: 100%; padding: 16px 20px 28px;
-  position: relative; z-index:1;
-}
-.pin-keypad {
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: 12px; width: 100%; max-width: 400px; margin: 0 auto;
-}
-.pin-key {
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 18px; height: 78px;
-  font-size: 28px; font-weight: 800; color: var(--text);
-  cursor: pointer; font-family: 'Nunito', sans-serif;
-  transition: all 0.12s; display: flex; align-items: center; justify-content: center;
-  -webkit-tap-highlight-color: transparent;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  user-select: none;
-}
-.pin-key:active, .pin-key.pressed {
-  background: var(--surface3); transform: scale(0.92);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-}
-.pin-key.del { font-size: 22px; color: var(--text3); }
-.pin-key.empty { visibility: hidden; pointer-events: none; }
+.pin-dot.filled { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 10px rgba(74,222,128,0.5); }
+.pin-dot.error-dot { background: var(--danger); border-color: var(--danger); box-shadow: 0 0 10px rgba(248,113,113,0.5); }
+
+.pin-hint { font-size: 13px; color: var(--text3); margin-bottom: 6px; text-align:center; }
+.pin-error-msg { color: var(--danger); font-size: 13px; font-weight: 700;
+  height: 20px; text-align:center; transition: opacity 0.3s; }
 @keyframes pinShake {
   0%,100%{transform:translateX(0)} 20%{transform:translateX(-10px)} 40%{transform:translateX(10px)}
   60%{transform:translateX(-7px)} 80%{transform:translateX(7px)}
 }
-.pin-dots.shake { animation: pinShake 0.4s ease; }
+.pin-input-wrap.shake { animation: pinShake 0.4s ease; }
+.pin-bottom { display:none; } /* no longer used */
 
 /* ── DUAL SOBRANTE (current week only) ── */
 .sobrante-dual {
@@ -537,30 +550,27 @@ select.form-input option { background: var(--surface2); }
     <div class="pin-logo">💰</div>
     <div class="pin-title">Mi Planificador</div>
     <div class="pin-subtitle">Ingresa tu PIN para continuar</div>
-    <div class="pin-dots" id="pinDots">
-      <div class="pin-dot" id="pd0"></div>
-      <div class="pin-dot" id="pd1"></div>
-      <div class="pin-dot" id="pd2"></div>
-      <div class="pin-dot" id="pd3"></div>
-      <div class="pin-dot" id="pd4"></div>
+    <div class="pin-input-wrap" id="pinWrap">
+      <input
+        class="pin-input-field" id="pinField"
+        type="password"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        maxlength="5"
+        autocomplete="off"
+        placeholder="·····"
+        oninput="onPinInput(this.value)"
+      >
+      <div class="pin-dots-overlay" id="pinDotsOverlay">
+        <div class="pin-dot" id="pd0"></div>
+        <div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div>
+        <div class="pin-dot" id="pd3"></div>
+        <div class="pin-dot" id="pd4"></div>
+      </div>
     </div>
+    <div class="pin-hint">Toca el campo e ingresa tu PIN</div>
     <div class="pin-error-msg" id="pinError"></div>
-  </div>
-  <div class="pin-bottom">
-    <div class="pin-keypad">
-      <button class="pin-key" onclick="pinPress('1')">1</button>
-      <button class="pin-key" onclick="pinPress('2')">2</button>
-      <button class="pin-key" onclick="pinPress('3')">3</button>
-      <button class="pin-key" onclick="pinPress('4')">4</button>
-      <button class="pin-key" onclick="pinPress('5')">5</button>
-      <button class="pin-key" onclick="pinPress('6')">6</button>
-      <button class="pin-key" onclick="pinPress('7')">7</button>
-      <button class="pin-key" onclick="pinPress('8')">8</button>
-      <button class="pin-key" onclick="pinPress('9')">9</button>
-      <button class="pin-key empty"></button>
-      <button class="pin-key" onclick="pinPress('0')">0</button>
-      <button class="pin-key del" onclick="pinDel()">⌫</button>
-    </div>
   </div>
 </div>
 
@@ -1689,54 +1699,59 @@ function renderAll(){ renderWeeks(); renderIncomes(); renderFixed(); renderFroze
 
 // ── PIN ──
 const CORRECT_PIN = '79751';
-let pinEntry = '';
 
-function pinPress(digit) {
-  if(pinEntry.length >= 5) return;
-  pinEntry += digit;
-  updatePinDots();
-  if(pinEntry.length === 5) {
-    setTimeout(() => checkPin(), 80);
-  }
-}
-function pinDel() {
-  if(pinEntry.length === 0) return;
-  pinEntry = pinEntry.slice(0, -1);
-  updatePinDots();
-  document.getElementById('pinError').textContent = '';
-}
-function updatePinDots() {
+function onPinInput(val) {
+  // Only allow digits
+  const clean = val.replace(/\D/g,'').slice(0,5);
+  const field = document.getElementById('pinField');
+  if(field.value !== clean) { field.value = clean; }
+
+  // Update dots
   for(let i=0;i<5;i++){
     const dot = document.getElementById('pd'+i);
-    dot.className = 'pin-dot' + (i < pinEntry.length ? ' filled' : '');
+    dot.className = 'pin-dot' + (i < clean.length ? ' filled' : '');
+  }
+
+  document.getElementById('pinError').textContent = '';
+  document.getElementById('pinWrap').classList.remove('shake');
+  field.classList.remove('error');
+
+  if(clean.length === 5) {
+    setTimeout(() => checkPin(clean), 80);
   }
 }
-function checkPin() {
-  if(pinEntry === CORRECT_PIN) {
+
+function checkPin(val) {
+  if(val === CORRECT_PIN) {
     const screen = document.getElementById('pinScreen');
     screen.style.transition = 'opacity 0.35s';
     screen.style.opacity = '0';
     setTimeout(() => screen.style.display = 'none', 350);
   } else {
-    // Wrong PIN
-    for(let i=0;i<5;i++) {
-      const dot = document.getElementById('pd'+i);
-      dot.className = 'pin-dot error';
+    const field = document.getElementById('pinField');
+    const wrap = document.getElementById('pinWrap');
+    field.classList.add('error');
+    for(let i=0;i<5;i++){
+      document.getElementById('pd'+i).className = 'pin-dot error-dot';
     }
-    const dotsEl = document.getElementById('pinDots');
-    dotsEl.classList.add('shake');
+    wrap.classList.add('shake');
     document.getElementById('pinError').textContent = 'PIN incorrecto, intenta de nuevo';
     setTimeout(() => {
-      dotsEl.classList.remove('shake');
-      pinEntry = '';
-      updatePinDots();
-    }, 500);
+      field.value = '';
+      field.classList.remove('error');
+      wrap.classList.remove('shake');
+      for(let i=0;i<5;i++){
+        document.getElementById('pd'+i).className = 'pin-dot';
+      }
+    }, 600);
   }
 }
 
 // ── INIT ──
 load();
 renderAll();
+// Auto-focus PIN field
+setTimeout(() => { const f = document.getElementById('pinField'); if(f) f.focus(); }, 300);
 </script>
 </body>
 </html>
